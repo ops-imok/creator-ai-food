@@ -6,9 +6,78 @@ import { ingredients, categories, tasteOptions, difficultyOptions, Ingredient } 
 interface IngredientSelectorProps {
   onGenerate: (selectedIngredients: Ingredient[], taste: string, difficulty: string) => void;
   loading: boolean;
+  lang?: 'zh' | 'en';
 }
 
-export default function IngredientSelector({ onGenerate, loading }: IngredientSelectorProps) {
+// 多语言
+const i18n = {
+  zh: {
+    title: '选择主食材',
+    hint: '选择 1-3 种食材，系统会自动排除不兼容的组合',
+    selected: '已选食材',
+    nextStep: '下一步：选择口味',
+    prevStep: '← 上一步',
+    tasteTitle: '选择口味偏好',
+    tasteHint: '这是可选步骤，帮助 AI 生成更符合你口味的菜品',
+    selectedIngredients: '已选食材：',
+    confirmTitle: '确认生成',
+    confirmHint: '检查你的选择，然后点击生成',
+    mainIngredients: '主食材',
+    tastePreference: '口味偏好',
+    difficulty: '难度等级',
+    notSelected: '未选择口味和难度，AI 将自由发挥',
+    generate: '✨ 创造新菜',
+    generating: '生成中...',
+    all: '全部',
+  },
+  en: {
+    title: 'Select Main Ingredients',
+    hint: 'Choose 1-3 ingredients. Incompatible combinations will be automatically excluded.',
+    selected: 'Selected',
+    nextStep: 'Next: Taste →',
+    prevStep: '← Previous',
+    tasteTitle: 'Choose Taste Preference',
+    tasteHint: 'Optional step to help AI generate dishes that suit your taste',
+    selectedIngredients: 'Selected: ',
+    confirmTitle: 'Confirm & Generate',
+    confirmHint: 'Review your selection and click generate',
+    mainIngredients: 'Main Ingredients',
+    tastePreference: 'Taste Preference',
+    difficulty: 'Difficulty',
+    notSelected: 'No taste or difficulty selected. AI will decide freely.',
+    generate: '✨ Create New Dish',
+    generating: 'Generating...',
+    all: 'All',
+  }
+};
+
+// 英文分类映射
+const categoryMap: Record<string, string> = {
+  '蔬菜': 'Vegetables',
+  '肉类': 'Meat',
+  '海鲜': 'Seafood',
+  '豆制品': 'Soy Products',
+  '蛋奶': 'Eggs & Dairy',
+  '主食': 'Staples',
+  '调味': 'Seasonings',
+};
+
+const tasteMap: Record<string, string> = {
+  '咸鲜': 'Savory',
+  '酸甜': 'Sweet & Sour',
+  '麻辣': 'Spicy',
+  '清淡': 'Light',
+  '融合': 'Fusion',
+};
+
+const difficultyMap: Record<string, string> = {
+  '新手': 'Beginner',
+  '进阶': 'Intermediate',
+  '挑战': 'Advanced',
+};
+
+export default function IngredientSelector({ onGenerate, loading, lang = 'zh' }: IngredientSelectorProps) {
+  const t = i18n[lang];
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
   const [taste, setTaste] = useState('');
   const [difficulty, setDifficulty] = useState('');
@@ -87,14 +156,14 @@ export default function IngredientSelector({ onGenerate, loading }: IngredientSe
         <span className="text-sm text-gray-500">
           {currentStep === 1 && '选择食材'}
           {currentStep === 2 && '选择口味'}
-          {currentStep === 3 && '确认生成'}
+          {currentStep === 3 && t.confirmTitle}
         </span>
       </div>
 
       {/* 步骤1: 选择食材 */}
       {currentStep === 1 && (
         <>
-          <h2 className="text-xl font-bold mb-2 text-gray-800">选择主食材</h2>
+          <h2 className="text-xl font-bold mb-2 text-gray-800">{t.title}</h2>
           <p className="text-gray-500 text-sm mb-4">
             选择 1-3 种食材，系统会自动排除不兼容的组合
           </p>
@@ -155,7 +224,7 @@ export default function IngredientSelector({ onGenerate, loading }: IngredientSe
           {/* 已选食材 */}
           {selectedIngredients.length > 0 && (
             <div className="mb-6 p-4 bg-orange-50 rounded-lg">
-              <h3 className="text-sm font-medium text-orange-800 mb-2">已选食材 ({selectedIngredients.length}/3)</h3>
+              <h3 className="text-sm font-medium text-orange-800 mb-2">{t.selected} ({selectedIngredients.length}/3)</h3>
               <div className="flex flex-wrap gap-2">
                 {selectedIngredients.map(ing => (
                   <div
@@ -185,7 +254,7 @@ export default function IngredientSelector({ onGenerate, loading }: IngredientSe
                 : 'bg-gray-200 text-gray-400 cursor-not-allowed'
             }`}
           >
-            下一步：选择口味 →
+            {t.nextStep}
           </button>
         </>
       )}
@@ -193,7 +262,7 @@ export default function IngredientSelector({ onGenerate, loading }: IngredientSe
       {/* 步骤2: 选择口味和难度 */}
       {currentStep === 2 && (
         <>
-          <h2 className="text-xl font-bold mb-2 text-gray-800">选择口味偏好</h2>
+          <h2 className="text-xl font-bold mb-2 text-gray-800">{t.tasteTitle}</h2>
           <p className="text-gray-500 text-sm mb-6">这是可选步骤，帮助 AI 生成更符合你口味的菜品</p>
 
           {/* 已选食材回顾 */}
