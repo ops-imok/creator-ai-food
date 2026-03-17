@@ -166,7 +166,7 @@ function generateMockRecipe(ingredients: IngredientInput[], taste: string | unde
   }));
 
   const allPairWell = ingredients.flatMap(i => i.pairWell);
-  const sideIngredients = [...new Set(allPairWell)].slice(0, 4);
+  const sideIngredients = Array.from(new Set(allPairWell)).slice(0, 4);
 
   const seasoningsByTaste: Record<string, string[]> = {
     '咸鲜': [t.salt, t.soySauce, 'Oyster Sauce', t.cookingWine, t.ginger, t.garlic],
