@@ -125,19 +125,22 @@ function generateRecipe(ingredients: IngredientInput[], taste: string | undefine
   }));
 
   const allPairWell = ingredients.flatMap(i => i.pairWell);
-  const sideIngredients = Array.from(new Set(allPairWell)).slice(0, 4);
+  // 英文界面需要翻译辅料
+  const sideIngredients = lang === 'en' 
+    ? ['Garlic', 'Ginger', 'Green Onion', 'Bell Pepper'].slice(0, 2 + ingredients.length)
+    : Array.from(new Set(allPairWell)).slice(0, 4);
 
   const seasoningsByTaste: Record<string, string[]> = {
-    '咸鲜': [t.salt, t.soySauce, 'Oyster Sauce', t.cookingWine, t.ginger, t.garlic],
-    '酸甜': ['Sugar', 'Vinegar', 'Ketchup', 'Lemon Juice', t.salt],
-    '麻辣': ['Sichuan Pepper', 'Dried Chili', 'Bean Paste', t.soySauce, t.ginger, t.garlic],
-    '清淡': [t.salt, t.cookingWine, t.ginger, 'Green Onion', 'White Pepper'],
-    '融合': [t.soySauce, 'Oyster Sauce', 'Sugar', t.cookingWine, t.garlic, 'Sesame Oil'],
-    'Savory': [t.salt, t.soySauce, 'Oyster Sauce', t.cookingWine, t.ginger, t.garlic],
-    'Sweet & Sour': ['Sugar', 'Vinegar', 'Ketchup', 'Lemon Juice', t.salt],
-    'Spicy': ['Sichuan Pepper', 'Dried Chili', 'Bean Paste', t.soySauce, t.ginger, t.garlic],
-    'Light': [t.salt, t.cookingWine, t.ginger, 'Green Onion', 'White Pepper'],
-    'Fusion': [t.soySauce, 'Oyster Sauce', 'Sugar', t.cookingWine, t.garlic, 'Sesame Oil'],
+    '咸鲜': [t.salt, t.soySauce, '蚝油', t.cookingWine, t.ginger, t.garlic],
+    '酸甜': ['糖', '醋', '番茄酱', '柠檬汁', t.salt],
+    '麻辣': ['花椒', '干辣椒', '豆瓣酱', t.soySauce, t.ginger, t.garlic],
+    '清淡': [t.salt, t.cookingWine, t.ginger, '葱', '白胡椒'],
+    '融合': [t.soySauce, '蚝油', '糖', t.cookingWine, t.garlic, '芝麻油'],
+    'Savory': ['Salt', 'Soy Sauce', 'Oyster Sauce', 'Cooking Wine', 'Ginger', 'Garlic'],
+    'Sweet & Sour': ['Sugar', 'Vinegar', 'Ketchup', 'Lemon Juice', 'Salt'],
+    'Spicy': ['Sichuan Pepper', 'Dried Chili', 'Bean Paste', 'Soy Sauce', 'Ginger', 'Garlic'],
+    'Light': ['Salt', 'Cooking Wine', 'Ginger', 'Green Onion', 'White Pepper'],
+    'Fusion': ['Soy Sauce', 'Oyster Sauce', 'Sugar', 'Cooking Wine', 'Garlic', 'Sesame Oil'],
   };
 
   const seasonings = seasoningsByTaste[taste || (lang === 'en' ? 'Savory' : '咸鲜')] || seasoningsByTaste[lang === 'en' ? 'Savory' : '咸鲜'];
@@ -152,10 +155,14 @@ function generateRecipe(ingredients: IngredientInput[], taste: string | undefine
   );
 
   const steps = [
-    { step: 1, content: `${t.step1} ${processedIngredients.map(i => i.name).join(', ')} ${t.step1End}` },
+    { step: 1, content: lang === 'en' 
+      ? `Cut ${processedIngredients.map(i => i.name).join(' and ')} into desired shapes and set aside.`
+      : `将${processedIngredients.map(i => i.name).join('、')}切成合适形状备用。` },
     { step: 2, content: hasMeat ? t.step2Meat : t.step2Prep },
     { step: 3, content: t.step3 },
-    { step: 4, content: t.step4 },
+    { step: 4, content: lang === 'en'
+      ? `Add ${processedIngredients.map(i => i.name).join(' and ')} and cook until done.`
+      : `放入${processedIngredients.map(i => i.name).join('、')}，炒至断生。` },
     { step: 5, content: t.step5 },
     { step: 6, content: t.step6 },
   ];
