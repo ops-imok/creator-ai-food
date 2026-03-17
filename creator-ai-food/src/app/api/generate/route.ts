@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 
 interface IngredientInput {
   name: string;
@@ -8,23 +8,7 @@ interface IngredientInput {
   pairWell: string[];
 }
 
-interface CookingStep {
-  step: number;
-  content: string;
-}
-
-interface GeneratedRecipe {
-  name: string;
-  time: string;
-  ingredients: { name: string; form: string; cooking: string }[];
-  sideIngredients: string[];
-  seasonings: string[];
-  steps: CookingStep[];
-  tips: string[];
-  highlight: string;
-  score: number;
-}
-
+// 流式输出生成菜谱
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
@@ -36,87 +20,62 @@ export async function POST(request: NextRequest) {
     };
 
     if (!ingredients || ingredients.length === 0) {
-      return NextResponse.json({ error: lang === 'en' ? 'Please select at least one ingredient' : '请选择至少一种食材' }, { status: 400 });
+      return new Response(JSON.stringify({ error: lang === 'en' ? 'Please select at least one ingredient' : '请选择至少一种食材' }), {
+        status: 400,
+        headers: { 'Content-Type': 'application/json' }
+      });
     }
 
-    const apiKey = process.env.DEEPSEEK_API_KEY || process.env.QIANFAN_API_KEY;
-    if (apiKey) {
-      const aiResponse = await callAI(ingredients, taste, difficulty, apiKey, lang);
-      return NextResponse.json(aiResponse);
-    }
+    // 创建流式响应
+    const encoder = new TextEncoder();
+    const stream = new ReadableStream({
+      async start(controller) {
+        // 生成菜谱数据
+        const recipe = generateRecipe(ingredients, taste, difficulty, lang);
+        
+        // 分段发送
+        const steps = [
+          { field: 'name', data: recipe.name },
+          { field: 'time', data: recipe.time },
+          { field: 'score', data: recipe.score },
+          { field: 'ingredients', data: recipe.ingredients },
+          { field: 'sideIngredients', data: recipe.sideIngredients },
+          { field: 'seasonings', data: recipe.seasonings },
+          { field: 'steps', data: recipe.steps },
+          { field: 'tips', data: recipe.tips },
+          { field: 'highlight', data: recipe.highlight },
+        ];
 
-    return NextResponse.json(generateMockRecipe(ingredients, taste, difficulty, lang));
+        for (const step of steps) {
+          // 发送每个字段
+          controller.enqueue(encoder.encode(`data: ${JSON.stringify(step)}\n\n`));
+          // 模拟处理延迟，让用户看到进度
+          await new Promise(r => setTimeout(r, 200));
+        }
+
+        // 发送完成信号
+        controller.enqueue(encoder.encode('data: [DONE]\n\n'));
+        controller.close();
+      },
+    });
+
+    return new Response(stream, {
+      headers: {
+        'Content-Type': 'text/event-stream',
+        'Cache-Control': 'no-cache',
+        'Connection': 'keep-alive',
+      },
+    });
   } catch (error) {
     console.error('API Error:', error);
-    return NextResponse.json({ error: 'Generation failed. Please try again.' }, { status: 500 });
-  }
-}
-
-async function callAI(ingredients: IngredientInput[], taste: string | undefined, difficulty: string | undefined, apiKey: string, lang: 'zh' | 'en'): Promise<GeneratedRecipe> {
-  const ingredientNames = lang === 'en' 
-    ? ingredients.map(i => i.nameEn || i.name).join(', ')
-    : ingredients.map(i => i.name).join('、');
-
-  const prompt = lang === 'en' 
-    ? `You are a creative chef. Create a new dish based on these ingredients:
-
-Ingredients: ${ingredientNames}
-${taste ? `Taste preference: ${taste}` : ''}
-${difficulty ? `Difficulty level: ${difficulty}` : ''}
-
-Return JSON format:
-{
-  "name": "Creative dish name",
-  "ingredients": [{"name": "ingredient", "form": "shape", "cooking": "method"}],
-  "sideIngredients": ["side ingredient 1", "side ingredient 2"],
-  "seasonings": ["seasoning 1", "seasoning 2"],
-  "steps": [{"step": 1, "content": "Step 1 instruction"}],
-  "tips": ["Tip 1", "Tip 2"],
-  "highlight": "Creative highlight (under 50 words)",
-  "score": 4
-}`
-    : `你是一位创意厨师。请根据以下食材创造一道新菜：
-
-食材：${ingredientNames}
-${taste ? `口味偏好：${taste}` : ''}
-${difficulty ? `难度等级：${difficulty}` : ''}
-
-请以 JSON 格式返回：
-{
-  "name": "创意菜名",
-  "ingredients": [{"name": "食材名", "form": "形态", "cooking": "处理方式"}],
-  "sideIngredients": ["辅料1", "辅料2"],
-  "seasonings": ["调料1", "调料2"],
-  "steps": [{"step": 1, "content": "第一步操作说明"}],
-  "tips": ["小贴士1", "小贴士2"],
-  "highlight": "创意亮点说明（50字以内）",
-  "score": 4
-}`;
-
-  try {
-    const response = await fetch('https://api.deepseek.com/v1/chat/completions', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
-      body: JSON.stringify({ model: 'deepseek-chat', messages: [{ role: 'user', content: prompt }], temperature: 0.7 }),
+    return new Response(JSON.stringify({ error: 'Generation failed' }), {
+      status: 500,
+      headers: { 'Content-Type': 'application/json' }
     });
-    const data = await response.json();
-    const content = data.choices?.[0]?.message?.content;
-    if (content) {
-      const jsonMatch = content.match(/\{[\s\S]*\}/);
-      if (jsonMatch) {
-        const parsed = JSON.parse(jsonMatch[0]);
-        if (!parsed.steps) parsed.steps = [];
-        if (!parsed.tips) parsed.tips = [];
-        return parsed;
-      }
-    }
-  } catch (error) {
-    console.error('AI API call failed:', error);
   }
-  return generateMockRecipe(ingredients, taste, difficulty, lang);
 }
 
-function generateMockRecipe(ingredients: IngredientInput[], taste: string | undefined, difficulty: string | undefined, lang: 'zh' | 'en'): GeneratedRecipe {
+function generateRecipe(ingredients: IngredientInput[], taste: string | undefined, difficulty: string | undefined, lang: 'zh' | 'en') {
   const t = {
     creativeDish: lang === 'en' ? 'Creative' : '创意',
     fusion: lang === 'en' ? 'Fusion' : '融合',
@@ -153,7 +112,7 @@ function generateMockRecipe(ingredients: IngredientInput[], taste: string | unde
 
   const name = dishNames[Math.floor(Math.random() * dishNames.length)];
   
-  // 生成时间（根据食材数量和复杂度）
+  // 生成时间
   const baseTime = 15 + ingredients.length * 5;
   const randomMinutes = Math.floor(Math.random() * 10);
   const totalTime = baseTime + randomMinutes;
@@ -183,9 +142,16 @@ function generateMockRecipe(ingredients: IngredientInput[], taste: string | unde
 
   const seasonings = seasoningsByTaste[taste || (lang === 'en' ? 'Savory' : '咸鲜')] || seasoningsByTaste[lang === 'en' ? 'Savory' : '咸鲜'];
 
-  const hasMeat = ingredients.some(i => i.nameEn?.toLowerCase().includes('pork') || i.nameEn?.toLowerCase().includes('beef') || i.nameEn?.toLowerCase().includes('chicken') || i.name.includes('肉') || i.name.includes('鸡') || i.name.includes('牛'));
+  const hasMeat = ingredients.some(i => 
+    i.nameEn?.toLowerCase().includes('pork') || 
+    i.nameEn?.toLowerCase().includes('beef') || 
+    i.nameEn?.toLowerCase().includes('chicken') || 
+    i.name.includes('肉') || 
+    i.name.includes('鸡') || 
+    i.name.includes('牛')
+  );
 
-  const steps: CookingStep[] = [
+  const steps = [
     { step: 1, content: `${t.step1} ${processedIngredients.map(i => i.name).join(', ')} ${t.step1End}` },
     { step: 2, content: hasMeat ? t.step2Meat : t.step2Prep },
     { step: 3, content: t.step3 },

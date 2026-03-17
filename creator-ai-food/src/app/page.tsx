@@ -63,6 +63,7 @@ export default function Home() {
   const handleGenerate = async (ingredients: Ingredient[], taste: string, difficulty: string) => {
     setLoading(true);
     setSelectedIngredients(ingredients);
+    setRecipe(null); // 清空之前的结果
 
     try {
       const response = await fetch('/api/generate', {
@@ -82,32 +83,60 @@ export default function Home() {
         }),
       });
 
-      const data = await response.json();
-      setRecipe(data);
+      // 处理流式响应
+      const reader = response.body?.getReader();
+      const decoder = new TextDecoder();
+      const tempRecipe: any = {};
+
+      if (reader) {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+
+          const text = decoder.decode(value);
+          const lines = text.split('\n');
+
+          for (const line of lines) {
+            if (line.startsWith('data: ')) {
+              const data = line.slice(6);
+              if (data === '[DONE]') {
+                break;
+              }
+              try {
+                const parsed = JSON.parse(data);
+                tempRecipe[parsed.field] = parsed.data;
+                // 更新显示
+                setRecipe({ ...tempRecipe } as GeneratedRecipe);
+              } catch (e) {
+                // 忽略解析错误
+              }
+            }
+          }
+        }
+      }
+
       // 保存到历史记录
-      saveToHistory(data);
+      if (tempRecipe.name) {
+        saveToHistory(tempRecipe as GeneratedRecipe);
+      }
     } catch (error) {
       console.error('生成失败:', error);
       const mockRecipe: GeneratedRecipe = {
-        name: lang === 'en' 
-          ? `Creative ${ingredients[0]?.name || ''} ${ingredients[1]?.name || ''} Dish`
-          : `${ingredients[0]?.name || ''}${ingredients[1]?.name || ''}创意菜`,
+        name: lang === 'en' ? `Creative Dish` : '创意菜',
+        time: lang === 'en' ? '20 min' : '20分钟',
         ingredients: ingredients.map(ing => ({
-          name: ing.name,
-          form: ing.forms[Math.floor(Math.random() * ing.forms.length)],
-          cooking: ing.cooking[Math.floor(Math.random() * ing.cooking.length)],
+          name: lang === 'en' ? (ing.nameEn || ing.name) : ing.name,
+          form: ing.forms[0],
+          cooking: ing.cooking[0],
         })),
-        sideIngredients: ingredients.flatMap(i => i.pairWell).slice(0, 3),
-        seasonings: lang === 'en' ? ['Salt', 'Soy Sauce', 'Cooking Wine', 'Garlic', 'Ginger'] : ['盐', '酱油', '料酒', '蒜', '姜'],
+        sideIngredients: [],
+        seasonings: [],
         steps: [],
         tips: [],
-        highlight: lang === 'en'
-          ? `A unique combination of ${ingredients.map(i => i.name).join(' and ')}, creating unexpected flavors.`
-          : `将${ingredients.map(i => i.name).join('和')}搭配，创造出独特的口感体验。`,
-        score: Math.floor(Math.random() * 2) + 4,
+        highlight: lang === 'en' ? 'Error generating recipe' : '生成失败',
+        score: 3,
       };
       setRecipe(mockRecipe);
-      saveToHistory(mockRecipe);
     } finally {
       setLoading(false);
     }
