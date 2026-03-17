@@ -1,9 +1,10 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import IngredientSelector from '@/components/IngredientSelector';
 import RecipeGenerator, { GeneratedRecipe } from '@/components/RecipeGenerator';
 import ClassicDishes from '@/components/ClassicDishes';
+import WelcomeGuide from '@/components/WelcomeGuide';
 import { Ingredient } from '@/data/ingredients';
 
 export default function Home() {
@@ -11,6 +12,17 @@ export default function Home() {
   const [loading, setLoading] = useState(false);
   const [selectedIngredients, setSelectedIngredients] = useState<Ingredient[]>([]);
   const [activeTab, setActiveTab] = useState<'create' | 'classic'>('create');
+  const [showGuide, setShowGuide] = useState(false);
+  const [mounted, setMounted] = useState(false);
+
+  // 首次访问检查
+  useEffect(() => {
+    setMounted(true);
+    const hasSeenGuide = localStorage.getItem('ai-cook-seen-guide');
+    if (!hasSeenGuide) {
+      setShowGuide(true);
+    }
+  }, []);
 
   const handleGenerate = async (ingredients: Ingredient[], taste: string, difficulty: string) => {
     setLoading(true);
@@ -56,17 +68,62 @@ export default function Home() {
     }
   };
 
+  // 从引导跳转到创造新菜
+  const handleGoToCreate = () => {
+    setActiveTab('create');
+    setShowGuide(false);
+  };
+
+  // 从引导跳转到经典菜谱
+  const handleGoToClassic = () => {
+    setActiveTab('classic');
+    setShowGuide(false);
+  };
+
+  // 关闭引导
+  const handleCloseGuide = () => {
+    localStorage.setItem('ai-cook-seen-guide', 'true');
+    setShowGuide(false);
+  };
+
+  if (!mounted) {
+    return (
+      <main className="min-h-screen bg-gradient-to-br from-orange-50 via-white to-yellow-50 flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500"></div>
+      </main>
+    );
+  }
+
   return (
     <main className="min-h-screen bg-gradient-to-br from-orange-50 via-white to-yellow-50">
+      {/* 欢迎引导弹窗 */}
+      {showGuide && (
+        <WelcomeGuide
+          onCreate={handleGoToCreate}
+          onClassic={handleGoToClassic}
+          forceShow={true}
+        />
+      )}
+
       {/* 头部 */}
       <header className="bg-white shadow-sm">
         <div className="max-w-6xl mx-auto px-4 py-6">
-          <div className="flex items-center gap-3">
-            <div className="text-4xl">🍳</div>
-            <div>
-              <h1 className="text-2xl font-bold text-gray-800">Creator AI Food</h1>
-              <p className="text-gray-500 text-sm">AI 驱动的创意菜谱生成器</p>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="text-4xl">🍳</div>
+              <div>
+                <h1 className="text-2xl font-bold text-gray-800">Creator AI Food</h1>
+                <p className="text-gray-500 text-sm">AI 驱动的创意菜谱生成器</p>
+              </div>
             </div>
+            {/* 帮助按钮 */}
+            <button
+              onClick={() => setShowGuide(true)}
+              className="text-gray-400 hover:text-orange-500 text-sm flex items-center gap-1 px-3 py-1.5 rounded-lg hover:bg-orange-50 transition-colors"
+            >
+              <span>❓</span>
+              <span>帮助</span>
+            </button>
           </div>
         </div>
       </header>
@@ -117,9 +174,17 @@ export default function Home() {
       </div>
 
       {/* 页脚 */}
-      <footer className="mt-auto py-6 text-center text-gray-400 text-sm">
-        <p>Creator AI Food - 实验性新菜创造平台</p>
-        <p className="mt-1">MVP Version · 2026</p>
+      <footer className="mt-auto py-6 text-center text-gray-400 text-sm border-t bg-white">
+        <div className="max-w-6xl mx-auto px-4">
+          <p>Creator AI Food - 实验性新菜创造平台</p>
+          <p className="mt-1">MVP Version · 2026</p>
+          <button
+            onClick={() => setShowGuide(true)}
+            className="mt-2 text-orange-400 hover:text-orange-500"
+          >
+            重新查看引导
+          </button>
+        </div>
       </footer>
     </main>
   );
