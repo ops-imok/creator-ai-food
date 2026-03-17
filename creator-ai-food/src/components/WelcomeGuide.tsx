@@ -83,7 +83,7 @@ export default function WelcomeGuide({ onCreate, onClassic, forceShow }: Welcome
         {/* 底部提示 */}
         <div className="bg-gray-50 px-6 py-4 text-center">
           <p className="text-gray-500 text-xs">
-            💡 提示：创造新菜需要选择 1-2 种食材，系统会自动排除不兼容的组合
+            💡 提示：创造新菜需要选择 1-3 种食材，系统会自动排除不兼容的组合
           </p>
         </div>
       </div>

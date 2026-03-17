@@ -30,8 +30,8 @@ export default function IngredientSelector({ onGenerate, loading }: IngredientSe
       if (prev.includes(id)) {
         return prev.filter(i => i !== id);
       }
-      if (prev.length >= 2) {
-        return prev; // 最多选择2个
+      if (prev.length >= 3) {
+        return prev; // 最多选择3个
       }
       return [...prev, id];
     });
@@ -96,7 +96,7 @@ export default function IngredientSelector({ onGenerate, loading }: IngredientSe
         <>
           <h2 className="text-xl font-bold mb-2 text-gray-800">选择主食材</h2>
           <p className="text-gray-500 text-sm mb-4">
-            选择 1-2 种食材，系统会自动排除不兼容的组合
+            选择 1-3 种食材，系统会自动排除不兼容的组合
           </p>
 
           {/* 分类筛选 */}
@@ -155,7 +155,7 @@ export default function IngredientSelector({ onGenerate, loading }: IngredientSe
           {/* 已选食材 */}
           {selectedIngredients.length > 0 && (
             <div className="mb-6 p-4 bg-orange-50 rounded-lg">
-              <h3 className="text-sm font-medium text-orange-800 mb-2">已选食材 ({selectedIngredients.length}/2)</h3>
+              <h3 className="text-sm font-medium text-orange-800 mb-2">已选食材 ({selectedIngredients.length}/3)</h3>
               <div className="flex flex-wrap gap-2">
                 {selectedIngredients.map(ing => (
                   <div
