@@ -15,6 +15,7 @@ interface CookingStep {
 
 interface GeneratedRecipe {
   name: string;
+  time: string;
   ingredients: { name: string; form: string; cooking: string }[];
   sideIngredients: string[];
   seasonings: string[];
@@ -151,6 +152,13 @@ function generateMockRecipe(ingredients: IngredientInput[], taste: string | unde
   ];
 
   const name = dishNames[Math.floor(Math.random() * dishNames.length)];
+  
+  // 生成时间（根据食材数量和复杂度）
+  const baseTime = 15 + ingredients.length * 5;
+  const randomMinutes = Math.floor(Math.random() * 10);
+  const totalTime = baseTime + randomMinutes;
+  const time = lang === 'en' ? `${totalTime} min` : `${totalTime}分钟`;
+  
   const processedIngredients = ingredients.map(ing => ({
     name: lang === 'en' ? (ing.nameEn || ing.name) : ing.name,
     form: ing.forms[Math.floor(Math.random() * ing.forms.length)],
@@ -196,6 +204,7 @@ function generateMockRecipe(ingredients: IngredientInput[], taste: string | unde
 
   return {
     name,
+    time,
     ingredients: processedIngredients,
     sideIngredients,
     seasonings,

@@ -4,6 +4,7 @@ import { Ingredient } from '@/data/ingredients';
 
 export interface GeneratedRecipe {
   name: string;
+  time: string;
   ingredients: { name: string; form: string; cooking: string }[];
   sideIngredients: string[];
   seasonings: string[];
@@ -25,6 +26,7 @@ export default function RecipeGenerator({ recipe, loading, ingredients, lang = '
     creating: lang === 'en' ? 'Creating your new dish...' : '正在创造美味新菜...',
     selectFirst: lang === 'en' ? 'Select ingredients and click "Create New Dish"' : '选择食材后点击"创造新菜"',
     aiHint: lang === 'en' ? 'AI will generate a creative recipe for you' : 'AI 将为您生成创意菜谱',
+    time: lang === 'en' ? '⏱️ Time' : '⏱️ 烹饪时间',
     feasibility: lang === 'en' ? 'Feasibility' : '可行性',
     ingredientProcess: lang === 'en' ? '🥘 Ingredient Processing' : '🥘 食材处理',
     sideIngredients: lang === 'en' ? '🥬 Side Ingredients' : '🥬 辅料',
@@ -62,7 +64,10 @@ export default function RecipeGenerator({ recipe, loading, ingredients, lang = '
     <div className="bg-white rounded-lg shadow-lg p-6">
       {/* 标题和评分 */}
       <div className="flex items-center justify-between mb-4">
-        <h2 className="text-xl font-bold text-gray-800">{recipe.name}</h2>
+        <div>
+          <h2 className="text-xl font-bold text-gray-800">{recipe.name}</h2>
+          {recipe.time && <p className="text-sm text-gray-500 mt-1">{t.time}: {recipe.time}</p>}
+        </div>
         <div className="flex items-center gap-2">
           <span className="text-sm text-gray-500">{t.feasibility}</span>
           <div className="flex items-center gap-1">
