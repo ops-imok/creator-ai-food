@@ -67,12 +67,11 @@ export default function Home() {
     try {
       const response = await fetch('/api/generate', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           ingredients: ingredients.map(i => ({
             name: i.name,
+            nameEn: i.nameEn,
             forms: i.forms,
             cooking: i.cooking,
             pairWell: i.pairWell,
